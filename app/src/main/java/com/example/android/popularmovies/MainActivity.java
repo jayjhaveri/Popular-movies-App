@@ -109,6 +109,10 @@ public class MainActivity extends AppCompatActivity
             mErrorMessageTextView.setVisibility(View.INVISIBLE);
             getSupportLoaderManager().initLoader(loader_id, bundleForLoader, callback);
         }else {
+
+            if (!isFavourite){
+                Toast.makeText(this,getString(R.string.internet_error),Toast.LENGTH_SHORT).show();
+            }
             isFavourite = true;
             getSupportLoaderManager().initLoader(LOADER_FAV_ID,bundleForLoader,callback);
         }
@@ -141,6 +145,8 @@ public class MainActivity extends AppCompatActivity
                 }else {
                     mErrorMessageTextView.setVisibility(View.GONE);
                 }
+                getSupportLoaderManager().restartLoader(LOADER_FAV_ID,null,MainActivity.this);
+
 
             }else {
                 mErrorMessageTextView.setText(getString(R.string.internet_error));
@@ -188,6 +194,7 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
+
         super.onSaveInstanceState(outState);
     }
 
@@ -326,7 +333,6 @@ public class MainActivity extends AppCompatActivity
                                 movies.add(movie);
 
                             }while(cursor.moveToNext());
-
                             cursor.close();
                         }else {
                             return null;
