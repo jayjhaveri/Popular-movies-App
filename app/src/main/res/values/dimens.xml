@@ -1,0 +1,31 @@
+<resources>
+    <!-- Default screen margins, per the Android Design guidelines. -->
+    <dimen name="activity_horizontal_margin">16dp</dimen>
+    <dimen name="activity_vertical_margin">16dp</dimen>
+
+    <dimen name="title_text">40sp</dimen>
+    <dimen name="title_padding">20dp</dimen>
+    <dimen name="image_height_detail">185dp</dimen>
+    <dimen name="image_width_detail">125dp</dimen>
+    <dimen name="overview_text_size">18sp</dimen>
+    <dimen name="detail_activity_margin_top_image">8dp</dimen>
+    <dimen name="detail_activity_date_padding">16dp</dimen>
+    <dimen name="detail_image_margin_left">@dimen/detail_activity_date_padding</dimen>
+    <dimen name="detail_image_margin_bottom">@dimen/detail_activity_date_padding</dimen>
+    <dimen name="detail_activity_text_date">25sp</dimen>
+    <dimen name="duration_textView_paddingLeft">14dp</dimen>
+    <dimen name="duration_textView_textSize">@dimen/overview_text_size</dimen>
+    <dimen name="rating_padding_left">16dp</dimen>
+    <dimen name="error_textSize">@dimen/title_text</dimen>
+    <dimen name="nestedScroll_height">130dp</dimen>
+    <dimen name="line_thickness">1dp</dimen>
+    <dimen name="line_view_margin">10dp</dimen>
+    <dimen name="likeButton_icon_size">25dp</dimen>
+    <dimen name="reviewTextSize">16sp</dimen>
+    <dimen name="image_height_land">450dp</dimen>
+    <dimen name="image_height_phone_land">290dp</dimen>
+    <dimen name="image_height_port">277dp</dimen>
+    <dimen name="image_height_tab_port">350dp</dimen>
+
+    <dimen name="author_name_text_size">@dimen/detail_activity_text_date</dimen>
+</resources>

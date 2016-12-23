@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/scrollView_detail"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorBackground">
+
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/colorDetailTitleBackground"
+            android:padding="@dimen/title_padding"
+            android:textColor="@android:color/white"
+            android:textSize="@dimen/title_text" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/movie_image"
+                android:layout_width="@dimen/image_width_detail"
+                android:layout_height="@dimen/image_height_detail"
+                android:layout_marginBottom="16dp"
+                android:layout_marginStart="@dimen/activity_horizontal_margin"
+                android:layout_marginLeft="@dimen/activity_horizontal_margin"
+                android:layout_marginTop="@dimen/detail_activity_margin_top_image" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/release_date"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:padding="@dimen/detail_activity_date_padding"
+                    android:textSize="@dimen/detail_activity_text_date" />
+
+                <TextView
+                    android:id="@+id/duration"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingLeft="@dimen/duration_textView_paddingLeft"
+                    android:paddingStart="@dimen/duration_textView_paddingLeft"
+                    android:paddingRight="@dimen/duration_textView_paddingLeft"
+                    android:paddingEnd="@dimen/duration_textView_paddingLeft"
+                    android:textSize="@dimen/duration_textView_textSize"
+                    android:textStyle="italic"
+                    tools:text="@string/duration" />
+
+                <TextView
+                    android:id="@+id/rating"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="@dimen/rating_padding_left"
+                    android:paddingLeft="@dimen/rating_padding_left"
+                    android:paddingRight="@dimen/rating_padding_left"
+                    android:paddingEnd="@dimen/rating_padding_left"
+                    android:textSize="@dimen/duration_textView_textSize" />
+
+                <com.like.LikeButton
+                    android:id="@+id/star_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:icon_size="@dimen/likeButton_icon_size"
+                    app:icon_type="heart">
+
+                </com.like.LikeButton>
+            </LinearLayout>
+
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/overview"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="@dimen/activity_horizontal_margin"
+            android:layout_marginLeft="@dimen/activity_horizontal_margin"
+            android:layout_marginRight="@dimen/activity_horizontal_margin"
+            android:layout_marginStart="@dimen/activity_horizontal_margin"
+            android:textSize="@dimen/overview_text_size" />
+
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/line_thickness"
+            android:layout_marginTop="@dimen/line_view_margin"
+            android:background="@color/colorPrimaryDark" />
+
+        <LinearLayout
+            android:id="@+id/trailer_linearLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="@dimen/detail_activity_date_padding"
+                android:layout_marginStart="@dimen/detail_activity_date_padding"
+                android:text="@string/trailers_title"
+                android:textSize="@dimen/detail_activity_text_date" />
+
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <ProgressBar
+                    android:id="@+id/pb_trailer"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center" />
+
+                <android.support.v7.widget.RecyclerView
+                    android:id="@+id/rv_trailers"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="@dimen/activity_horizontal_margin"
+                    android:layout_marginRight="@dimen/activity_horizontal_margin"></android.support.v7.widget.RecyclerView>
+
+            </FrameLayout>
+
+
+        </LinearLayout>
+
+        <View
+            android:id="@+id/divider_review"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/line_thickness"
+            android:background="@color/colorPrimaryDark" />
+
+        <LinearLayout
+            android:id="@+id/reviews_linearLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="@dimen/detail_activity_date_padding"
+                android:layout_marginStart="@dimen/detail_activity_date_padding"
+                android:text="@string/reviews_title"
+                android:textSize="@dimen/detail_activity_text_date" />
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <ProgressBar
+                    android:id="@+id/pb_review"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center" />
+
+                <android.support.v7.widget.RecyclerView
+                    android:id="@+id/rv_reviews"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"></android.support.v7.widget.RecyclerView>
+
+            </FrameLayout>
+
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</ScrollView>

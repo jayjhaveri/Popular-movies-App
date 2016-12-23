@@ -1,0 +1,46 @@
+<resources>
+    <string name="app_name">PopularMovies</string>
+    <string name="error_message">Not data available</string>
+    <string name="action_settings">Settings</string>
+    <string name="title_activity_settings">Settings</string>
+
+
+    <string name="pref_popular">Popularity</string>
+    <string name="pref_top_rated">Top Rated</string>
+    <string name="pref_favourite">Favourite</string>
+
+    <string name="pref_popular_value">popular</string>
+    <string name="pref_top_rated_value">top_rated</string>
+    <string name="pref_favourite_value">favourite</string>
+
+    <string-array name="pref_sort_order_values">
+        <item>@string/pref_popular_value</item>
+        <item>@string/pref_top_rated_value</item>
+        <item>@string/pref_favourite_value</item>
+    </string-array>
+
+    <string-array name="pref_sort_order_options">
+        <item>@string/pref_popular</item>
+        <item>@string/pref_top_rated</item>
+        <item>@string/pref_favourite</item>
+    </string-array>
+
+    <string-array name="pref_sort_order_options_offline">
+        <item>@string/pref_favourite</item>
+    </string-array>
+
+    <string-array name="pref_sort_order_values_offline">
+        <item>@string/pref_favourite_value</item>
+    </string-array>
+
+    <string name="pref_sort_order_key">sort_order</string>
+    <string name="pref_sort_order">Sort Order</string>
+    <string name="internet_error">No internet please try again later, please select favourite section</string>
+    <string name="duration">120min</string>
+    <string name="reviews_title">Reviews :</string>
+    <string name="trailers_title">Trailers:</string>
+    <string name="toast_error_internet">App is not connected to internet, Only favourite movies you can see</string>
+    <string name="error_favourite">Please mark favourite first!</string>
+
+
+</resources>
