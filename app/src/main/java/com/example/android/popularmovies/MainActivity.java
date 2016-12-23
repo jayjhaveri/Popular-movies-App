@@ -74,7 +74,7 @@ public class MainActivity extends AppCompatActivity
         if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE
                 || getResources().getDisplayMetrics().widthPixels>=800) {
             if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE
-                    && getResources().getDisplayMetrics().widthPixels>800){
+                    && getResources().getDisplayMetrics().widthPixels>1200){
                 gridLayoutManager = new GridLayoutManager(getApplicationContext(), 4);
             }else{
 
@@ -133,15 +133,20 @@ public class MainActivity extends AppCompatActivity
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
         String sort_order = sharedPref.getString(getString(R.string.pref_sort_order_key), getString(R.string.pref_popular_value));
 
+
         if (!isOnline()){
             if(isFavourite){
-                mErrorMessageTextView.setText(R.string.error_favourite);
+                if(movies==null){
+                    mErrorMessageTextView.setText(R.string.error_favourite);
+                }else {
+                    mErrorMessageTextView.setVisibility(View.GONE);
+                }
+
             }else {
                 mErrorMessageTextView.setText(getString(R.string.internet_error));
                 mLoadingIndicator.setVisibility(View.GONE);
             }
 
-            mErrorMessageTextView.setVisibility(View.VISIBLE);
         }
 
         if (sort_order.equals(getString(R.string.pref_top_rated_value))) {

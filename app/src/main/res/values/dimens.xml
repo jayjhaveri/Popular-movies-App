@@ -24,7 +24,7 @@
     <dimen name="reviewTextSize">16sp</dimen>
     <dimen name="image_height_land">450dp</dimen>
     <dimen name="image_height_phone_land">290dp</dimen>
-    <dimen name="image_height_port">277dp</dimen>
+    <dimen name="image_height_port">300dp</dimen>
     <dimen name="image_height_tab_port">350dp</dimen>
 
     <dimen name="author_name_text_size">@dimen/detail_activity_text_date</dimen>
