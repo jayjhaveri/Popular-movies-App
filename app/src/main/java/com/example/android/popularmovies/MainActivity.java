@@ -72,7 +72,7 @@ public class MainActivity extends AppCompatActivity
 
         RecyclerView.LayoutManager gridLayoutManager;
         if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE
-                || getResources().getDisplayMetrics().widthPixels>600) {
+                || getResources().getDisplayMetrics().widthPixels>=800) {
             if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE
                     && getResources().getDisplayMetrics().widthPixels>800){
                 gridLayoutManager = new GridLayoutManager(getApplicationContext(), 4);
