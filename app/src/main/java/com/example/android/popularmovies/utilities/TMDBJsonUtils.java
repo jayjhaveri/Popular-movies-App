@@ -1,6 +1,9 @@
 package com.example.android.popularmovies.utilities;
 
-import com.example.android.popularmovies.data.Movie;
+import android.content.ContentValues;
+import android.content.Context;
+
+import com.example.android.popularmovies.data.MovieContract.MovieEntry;
 import com.example.android.popularmovies.data.Review;
 
 import org.json.JSONArray;
@@ -15,7 +18,8 @@ public final class TMDBJsonUtils {
 
     private static final String TAG = TMDBJsonUtils.class.getSimpleName();
 
-    public static Movie[] getMovieDateFromJson(String movieJsonStr) throws JSONException {
+    public static ContentValues[] getMovieDataFromJson(Context context, String movieJsonStr, boolean isPopular)
+            throws JSONException {
 
 
         final String TMDB_RESULTS = "results";
@@ -28,28 +32,46 @@ public final class TMDBJsonUtils {
         final String TMDB_ID = "id";
 
 
+
         JSONObject movieJson = new JSONObject(movieJsonStr);
 
 
         if (movieJson.has(TMDB_RESULTS)) {
             JSONArray results = movieJson.getJSONArray(TMDB_RESULTS);
-            Movie[] movies = new Movie[results.length()];
+            ContentValues[] moviesContentValues = new ContentValues[results.length()];
 
             for (int i = 0; i < results.length(); i++) {
-                movies[i] = new Movie();
 
                 //get json object in movieData
                 JSONObject movieData = results.getJSONObject(i);
+                int movie_id = movieData.getInt(TMDB_ID);
+                String original_title = movieData.getString(TMDB_ORIGINAL_TITLE);
+                String image_url = movieData.getString(TMDB_POSTER_PATH);
+                String overview = movieData.getString(TMDB_OVERVIEW);
+                double user_rating = movieData.getDouble(TMDB_VOTE_AVERAGE);
+                String release_date = movieData.getString(TMDB_RELEASE_DATE);
 
-                movies[i].setMovie_id(movieData.getInt(TMDB_ID));
+                ContentValues movieValues = new ContentValues();
+                movieValues.put(MovieEntry.COLUMN_MOVIE_TITLE,original_title);
+                movieValues.put(MovieEntry.COLUMN_MOVIE_POSTER_PATH, image_url);
+                movieValues.put(MovieEntry.COLUMN_MOVIE_SYNOPSIS, overview);
+                movieValues.put(MovieEntry.COLUMN_USER_RATING, user_rating);
+                movieValues.put(MovieEntry.COLUMN_MOVIE_ID, movie_id);
+                movieValues.put(MovieEntry.COLUMN_RELEASE_DATE, release_date);
+                if (!isPopular) {
+                    movieValues.put(MovieEntry.COLUMN_IS_POPULAR, 0);
+                }
+                /*movies[i].setMovie_id(movieData.getInt(TMDB_ID));
                 movies[i].setOriginal_title(movieData.getString(TMDB_ORIGINAL_TITLE));
                 movies[i].setImage_url(movieData.getString(TMDB_POSTER_PATH));
                 movies[i].setMovie_overview(movieData.getString(TMDB_OVERVIEW));
                 movies[i].setUser_rating(movieData.getDouble(TMDB_VOTE_AVERAGE));
-                movies[i].setRelease_date(movieData.getString(TMDB_RELEASE_DATE));
+                movies[i].setRelease_date(movieData.getString(TMDB_RELEASE_DATE));*/
+
+                moviesContentValues[i] = movieValues;
             }
 
-            return movies;
+            return moviesContentValues;
 
 
         }

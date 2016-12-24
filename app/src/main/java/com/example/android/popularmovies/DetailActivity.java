@@ -28,7 +28,7 @@ import android.widget.TextView;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.example.android.popularmovies.data.Movie;
-import com.example.android.popularmovies.data.MovieContract.MovieEntry;
+import com.example.android.popularmovies.data.MovieContract.FavouriteEntry;
 import com.example.android.popularmovies.data.Review;
 import com.example.android.popularmovies.utilities.NetworkUtils;
 import com.example.android.popularmovies.utilities.TMDBJsonUtils;
@@ -208,7 +208,7 @@ public class DetailActivity extends AppCompatActivity implements LoaderManager.L
 
             //cursor for favourite movies
             final Cursor cursor = getContentResolver().query(
-                    Uri.parse(MovieEntry.CONTENT_URI + "/" + String.valueOf(movie.getMovie_id())),
+                    Uri.parse(FavouriteEntry.CONTENT_URI + "/" + String.valueOf(movie.getMovie_id())),
                     null,
                     null,
                     null,
@@ -219,7 +219,7 @@ public class DetailActivity extends AppCompatActivity implements LoaderManager.L
 
             if (cursor.moveToFirst()) {
                 do {
-                    int isFavoritedColumn = cursor.getColumnIndex(MovieEntry.COLUMN_IS_FAVORITED);
+                    int isFavoritedColumn = cursor.getColumnIndex(FavouriteEntry.COLUMN_IS_FAVOURITE);
 
                     if (cursor.getInt(isFavoritedColumn) > 0) {
                         likeButton.setLiked(true);
@@ -240,23 +240,18 @@ public class DetailActivity extends AppCompatActivity implements LoaderManager.L
                 @Override
                 public void liked(LikeButton likeButton) {
 
-                    Uri uri = MovieEntry.CONTENT_URI;
+                    Uri uri = FavouriteEntry.CONTENT_URI;
 
                     ContentValues values = new ContentValues();
-                    values.put(MovieEntry.COLUMN_MOVIE_TITLE, movie.getOriginal_title());
-                    values.put(MovieEntry.COLUMN_MOVIE_POSTER_PATH, movie.getImage_url());
-                    values.put(MovieEntry.COLUMN_MOVIE_SYNOPSIS, movie.getMovie_overview());
-                    values.put(MovieEntry.COLUMN_USER_RATING, movie.getUser_rating());
-                    values.put(MovieEntry.COLUMN_MOVIE_ID, finalId);
-                    values.put(MovieEntry.COLUMN_RELEASE_DATE, movie.getRelease_date());
-                    values.put(MovieEntry.COLUMN_IS_FAVORITED, 1);
+                    values.put(FavouriteEntry.COLUMN_MOVIE_ID, finalId);
+                    values.put(FavouriteEntry.COLUMN_IS_FAVOURITE, 1);
 
-                    Uri rowUpdated = getContentResolver().insert(
+                    Uri rowInserted = getContentResolver().insert(
                             uri,
                             values
                     );
 
-                    if (rowUpdated == null) {
+                    if (rowInserted == null) {
                         throw new UnsupportedOperationException("fail to insert");
                     }
 
@@ -265,11 +260,11 @@ public class DetailActivity extends AppCompatActivity implements LoaderManager.L
 
                 @Override
                 public void unLiked(LikeButton likeButton) {
-                    Uri uri = Uri.parse(MovieEntry.CONTENT_URI + "/" + finalId);
+                    Uri uri = Uri.parse(FavouriteEntry.CONTENT_URI + "/" + finalId);
 
                     int rowDeleted = getContentResolver().delete(
                             uri,
-                            MovieEntry.COLUMN_MOVIE_ID + "=?",
+                            FavouriteEntry.COLUMN_MOVIE_ID + "=?",
                             new String[]{"" + finalId}
                     );
 

@@ -20,22 +20,6 @@ public class SettingsFragment extends PreferenceFragmentCompat
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
 
 
-        if (!isOnline()){
-            addPreferencesFromResource(R.xml.pref_general_offline);
-            SharedPreferences sharedPreferences = getPreferenceScreen().getSharedPreferences();
-            PreferenceScreen prefscreen = getPreferenceScreen();
-
-            int count = prefscreen.getPreferenceCount();
-            for(int i=0 ; i<count ; i++){
-                Preference p = prefscreen.getPreference(i);
-                ListPreference listPreference = (ListPreference) findPreference(getString(R.string.pref_sort_order_key));
-                listPreference.setValue(getString(R.string.pref_favourite_value));
-                if(!(p instanceof CheckBoxPreference)){
-                    String value = sharedPreferences.getString(p.getKey(),getString(R.string.pref_favourite_value));
-                    setPreferenceSummary(p,value);
-                }
-            }
-        }else {
             addPreferencesFromResource(R.xml.pref_general);
             SharedPreferences sharedPreferences = getPreferenceScreen().getSharedPreferences();
             PreferenceScreen prefscreen = getPreferenceScreen();
@@ -49,7 +33,7 @@ public class SettingsFragment extends PreferenceFragmentCompat
                     setPreferenceSummary(p,value);
                 }
             }
-        }
+
 
 
     }

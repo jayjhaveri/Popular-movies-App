@@ -11,6 +11,7 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
+import com.example.android.popularmovies.data.MovieContract.FavouriteEntry;
 import com.example.android.popularmovies.data.MovieContract.MovieEntry;
 
 /**
@@ -19,18 +20,23 @@ import com.example.android.popularmovies.data.MovieContract.MovieEntry;
 
 public class MovieContentProvider extends ContentProvider {
 
-    MovieDbOpenHelper mMovieDbOpenHelper ;
-
-    public static final int MOVIES =100;
+    public static final int MOVIES = 100;
     public static final int MOVIES_WITH_ID = 101;
+    public static final int FAVOURITES = 200;
+    public static final int FAVOURITES_WITH_ID = 201;
+    public static UriMatcher sUriMatcher = buildUriMatcher();
+    MovieDbOpenHelper mMovieDbOpenHelper;
 
-    public static  UriMatcher sUriMtacher = buildUriMatcher();
-
-    private static UriMatcher buildUriMatcher(){
+    private static UriMatcher buildUriMatcher() {
         UriMatcher uriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
 
-        uriMatcher.addURI(MovieContract.CONTENT_AUTHORITY,MovieContract.PATH_FAVORITED,MOVIES);
-        uriMatcher.addURI(MovieContract.CONTENT_AUTHORITY,MovieContract.PATH_FAVORITED + "/#",MOVIES_WITH_ID);
+        uriMatcher.addURI(MovieContract.CONTENT_AUTHORITY, MovieContract.PATH_MOVIES, MOVIES);
+        uriMatcher.addURI(MovieContract.CONTENT_AUTHORITY, MovieContract.PATH_MOVIES + "/#", MOVIES_WITH_ID);
+
+        uriMatcher.addURI(MovieContract.CONTENT_AUTHORITY, MovieContract.PATH_MOVIES
+                + "/" + MovieContract.PATH_FAVORITES, FAVOURITES);
+        uriMatcher.addURI(MovieContract.CONTENT_AUTHORITY, MovieContract.PATH_MOVIES
+                + "/" + MovieContract.PATH_FAVORITES + "/#", FAVOURITES_WITH_ID);
 
         return uriMatcher;
     }
@@ -47,13 +53,13 @@ public class MovieContentProvider extends ContentProvider {
     @Override
     public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
 
-        int match = sUriMtacher.match(uri);
+        int match = sUriMatcher.match(uri);
 
         SQLiteDatabase db = mMovieDbOpenHelper.getReadableDatabase();
 
         Cursor retCursor;
 
-        switch (match){
+        switch (match) {
             case MOVIES:
                 retCursor = db.query(
                         MovieEntry.TABLE_NAME,
@@ -66,27 +72,34 @@ public class MovieContentProvider extends ContentProvider {
                 );
                 break;
 
-            case MOVIES_WITH_ID:
+            case FAVOURITES_WITH_ID:
                 String id = uri.getLastPathSegment();
-                String mSelection = MovieEntry.COLUMN_MOVIE_ID + "=?";
+                String mSelection = FavouriteEntry.COLUMN_MOVIE_ID + "=?";
                 String[] mSelectionArgs = new String[]{id};
 
                 retCursor = db.query(
-                        MovieEntry.TABLE_NAME,
+                        FavouriteEntry.TABLE_NAME,
                         projection,
                         mSelection,
                         mSelectionArgs,
                         null,
                         null,
-                        MovieEntry.COLUMN_IS_FAVORITED
+                        null
                 );
                 break;
+            case FAVOURITES:
+
+                retCursor = db.rawQuery("SELECT * FROM " + MovieEntry.TABLE_NAME + " INNER JOIN " + FavouriteEntry.TABLE_NAME +
+                        " ON " + FavouriteEntry.COLUMN_MOVIE_ID + " = " + MovieEntry.COLUMN_MOVIE_ID + ";", null);
+
+                break;
+
             default:
-                throw new UnsupportedOperationException("Fail uri "+uri);
+                throw new UnsupportedOperationException("Fail uri " + uri);
 
         }
 
-        retCursor.setNotificationUri(getContext().getContentResolver(),uri);
+        retCursor.setNotificationUri(getContext().getContentResolver(), uri);
 
         return retCursor;
     }
@@ -103,11 +116,11 @@ public class MovieContentProvider extends ContentProvider {
 
         final SQLiteDatabase db = mMovieDbOpenHelper.getWritableDatabase();
 
-        int match = sUriMtacher.match(uri);
+        int match = sUriMatcher.match(uri);
 
         Uri returnUri;
 
-        switch (match){
+        switch (match) {
             case MOVIES:
                 long id = db.insert(
                         MovieEntry.TABLE_NAME,
@@ -115,48 +128,76 @@ public class MovieContentProvider extends ContentProvider {
                         contentValues
                 );
 
-                if (id>0){
-                    returnUri = ContentUris.withAppendedId(MovieEntry.CONTENT_URI,id);
-                }else {
-                    throw new android.database.SQLException("Failed to insert row into "+uri);
+                if (id > 0) {
+                    returnUri = ContentUris.withAppendedId(MovieEntry.CONTENT_URI, id);
+                } else {
+                    throw new android.database.SQLException("Failed to insert row into " + uri);
                 }
 
                 break;
 
+            case FAVOURITES:
+
+                long favId = db.insert(
+                        FavouriteEntry.TABLE_NAME,
+                        null,
+                        contentValues
+                );
+                if (favId > 0) {
+                    returnUri = ContentUris.withAppendedId(MovieEntry.CONTENT_URI, favId);
+                } else {
+                    throw new android.database.SQLException("Failed to insert row into " + uri);
+                }
+
+                break;
             default:
-                throw new UnsupportedOperationException("fail");
+                throw new UnsupportedOperationException("fail "+uri);
         }
 
-        getContext().getContentResolver().notifyChange(returnUri,null);
+        getContext().getContentResolver().notifyChange(returnUri, null);
 
         return returnUri;
     }
 
     @Override
-    public int delete(Uri uri, String selection, String[] strings) {
+    public int delete(Uri uri, String selection, String[] selectionArgs) {
 
         final SQLiteDatabase db = mMovieDbOpenHelper.getWritableDatabase();
 
-        int match = sUriMtacher.match(uri);
+        int match = sUriMatcher.match(uri);
 
-        switch (match){
-            case MOVIES_WITH_ID:
+        if (null == selection) selection = "1";
+
+        switch (match) {
+            case FAVOURITES_WITH_ID:
                 String id = uri.getLastPathSegment();
 
                 int rowDeleted = db.delete(
-                        MovieEntry.TABLE_NAME,
+                        FavouriteEntry.TABLE_NAME,
                         selection,
                         new String[]{id}
                 );
-                Log.d("Content Provider delete",""+rowDeleted);
-                if (rowDeleted>0){
-                    getContext().getContentResolver().notifyChange(uri,null);
-                }else {
-                    throw new android.database.SQLException("Failed to delete row  "+uri);
+                Log.d("Content Provider delete", "" + rowDeleted);
+                if (rowDeleted > 0) {
+                    getContext().getContentResolver().notifyChange(uri, null);
+                } else {
+                    throw new android.database.SQLException("Failed to delete row  " + uri);
                 }
                 return rowDeleted;
-                default:
-                    throw new UnsupportedOperationException("fail uri");
+
+            case MOVIES:
+                int rowMovieDeleted = db.delete(
+                        MovieEntry.TABLE_NAME,
+                        selection,
+                        selectionArgs
+                );
+
+                if (rowMovieDeleted > 0) {
+                    getContext().getContentResolver().notifyChange(uri, null);
+                }
+                return rowMovieDeleted;
+            default:
+                throw new UnsupportedOperationException("fail uri");
         }
     }
 
@@ -166,26 +207,26 @@ public class MovieContentProvider extends ContentProvider {
 
         final SQLiteDatabase db = mMovieDbOpenHelper.getWritableDatabase();
 
-        int match = sUriMtacher.match(uri);
+        int match = sUriMatcher.match(uri);
 
-        switch (match){
-            case MOVIES_WITH_ID:
+        switch (match) {
+            case FAVOURITES_WITH_ID:
                 String id = uri.getLastPathSegment();
 
-                String mSelection = MovieEntry.COLUMN_MOVIE_ID + "=?";
+                String mSelection = FavouriteEntry.COLUMN_MOVIE_ID + "=?";
                 String[] mSelectionArgs = new String[]{id};
 
                 int rowInserted = db.update(
-                        MovieEntry.TABLE_NAME,
+                        FavouriteEntry.TABLE_NAME,
                         values,
                         mSelection,
                         mSelectionArgs
                 );
-                Log.d("Content Provider",""+rowInserted);
-                if (rowInserted>0){
-                    getContext().getContentResolver().notifyChange(uri,null);
-                }else {
-                    throw new android.database.SQLException("Failed to update row  "+uri);
+                Log.d("Content Provider", "" + rowInserted);
+                if (rowInserted > 0) {
+                    getContext().getContentResolver().notifyChange(uri, null);
+                } else {
+                    throw new android.database.SQLException("Failed to update row  " + uri);
                 }
                 return rowInserted;
             default:
@@ -193,5 +234,38 @@ public class MovieContentProvider extends ContentProvider {
         }
 
 
+    }
+
+    @Override
+    public int bulkInsert(Uri uri, ContentValues[] values) {
+        final SQLiteDatabase db = mMovieDbOpenHelper.getWritableDatabase();
+
+        switch (sUriMatcher.match(uri)) {
+
+            case MOVIES:
+                db.beginTransaction();
+                int rowsInserted = 0;
+                try {
+                    for (ContentValues value : values) {
+
+                        long _id = db.insert(MovieEntry.TABLE_NAME, null, value);
+                        if (_id != -1) {
+                            rowsInserted++;
+                        }
+                    }
+                    db.setTransactionSuccessful();
+                } finally {
+                    db.endTransaction();
+                }
+
+                if (rowsInserted > 0) {
+                    getContext().getContentResolver().notifyChange(uri, null);
+                }
+
+                return rowsInserted;
+
+            default:
+                return super.bulkInsert(uri, values);
+        }
     }
 }
