@@ -83,8 +83,16 @@ public class MainActivity extends AppCompatActivity
         } else {
             gridLayoutManager = new GridLayoutManager(getApplicationContext(), 2);
         }
-
         mMovieAdapter = new MovieAdapter(getApplicationContext(), this);
+
+        if (savedInstanceState!=null && savedInstanceState.containsKey(PARCEL_MOVIE)){
+            movies = (Movie[]) savedInstanceState.getParcelableArray(PARCEL_MOVIE);
+            mMovieAdapter.setMovieData(movies);
+            if (movies!=null){
+                mErrorMessageTextView.setVisibility(View.GONE);
+            }
+        }
+
         mRecyclerView.setLayoutManager(gridLayoutManager);
 
         mRecyclerView.setAdapter(mMovieAdapter);
@@ -109,12 +117,7 @@ public class MainActivity extends AppCompatActivity
             mErrorMessageTextView.setVisibility(View.INVISIBLE);
             getSupportLoaderManager().initLoader(loader_id, bundleForLoader, callback);
         }else {
-
-            if (!isFavourite){
-                Toast.makeText(this,getString(R.string.internet_error),Toast.LENGTH_SHORT).show();
-            }
-            isFavourite = true;
-            getSupportLoaderManager().initLoader(LOADER_FAV_ID,bundleForLoader,callback);
+            mErrorMessageTextView.setText(getString(R.string.internet_error));
         }
 
         PreferenceManager.getDefaultSharedPreferences(this)
@@ -149,7 +152,7 @@ public class MainActivity extends AppCompatActivity
 
 
             }else {
-                mErrorMessageTextView.setText(getString(R.string.internet_error));
+//                mErrorMessageTextView.setText(getString(R.string.internet_error));
                 mLoadingIndicator.setVisibility(View.GONE);
             }
 
@@ -196,6 +199,7 @@ public class MainActivity extends AppCompatActivity
     protected void onSaveInstanceState(Bundle outState) {
 
         super.onSaveInstanceState(outState);
+        outState.putParcelableArray(PARCEL_MOVIE,movies);
     }
 
     @Override
@@ -209,7 +213,9 @@ public class MainActivity extends AppCompatActivity
         if (isFavourite){
          mErrorMessageTextView.setText(R.string.error_favourite);
         }
-
+        if (isOnline()){
+            mErrorMessageTextView.setText(getString(R.string.error_message));
+        }
         mErrorMessageTextView.setVisibility(View.VISIBLE);
         mRecyclerView.setVisibility(View.INVISIBLE);
     }
