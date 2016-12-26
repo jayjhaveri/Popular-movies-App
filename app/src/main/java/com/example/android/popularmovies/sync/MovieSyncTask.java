@@ -48,6 +48,8 @@ public class MovieSyncTask {
                         MovieEntry.CONTENT_URI,
                         combinedValues
                 );
+
+
             }
 
         } catch (Exception e) {

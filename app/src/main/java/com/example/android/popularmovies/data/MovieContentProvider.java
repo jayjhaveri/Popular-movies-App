@@ -87,6 +87,24 @@ public class MovieContentProvider extends ContentProvider {
                         null
                 );
                 break;
+
+            case MOVIES_WITH_ID:
+                String movie_id = uri.getLastPathSegment();
+                String fav_selection = MovieEntry.COLUMN_MOVIE_ID + "=?";
+                String[] fav_selectionArgs = new String[]{movie_id};
+
+                retCursor = db.query(
+                        MovieEntry.TABLE_NAME,
+                        projection,
+                        fav_selection,
+                        fav_selectionArgs,
+                        null,
+                        null,
+                        null
+                );
+
+                break;
+
             case FAVOURITES:
 
                 retCursor = db.rawQuery("SELECT * FROM " + MovieEntry.TABLE_NAME + " INNER JOIN " + FavouriteEntry.TABLE_NAME +

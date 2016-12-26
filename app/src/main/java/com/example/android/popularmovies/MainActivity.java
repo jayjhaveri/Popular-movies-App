@@ -6,9 +6,10 @@ import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.database.Cursor;
 import android.net.ConnectivityManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.LoaderManager;
-import android.support.v4.content.AsyncTaskLoader;
+import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.preference.PreferenceManager;
@@ -21,41 +22,34 @@ import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import com.example.android.popularmovies.data.Movie;
 import com.example.android.popularmovies.data.MovieContract.FavouriteEntry;
 import com.example.android.popularmovies.data.MovieContract.MovieEntry;
 import com.example.android.popularmovies.sync.MovieSyncUtils;
 
-import java.util.ArrayList;
-
 import butterknife.BindView;
 import butterknife.ButterKnife;
 
-import static com.example.android.popularmovies.R.id.pb;
-
 public class MainActivity extends AppCompatActivity
         implements MovieAdapter.MovieAdapterOnClickHandler,
-        LoaderManager.LoaderCallbacks<Movie[]>,
+        LoaderManager.LoaderCallbacks<Cursor>,
         SharedPreferences.OnSharedPreferenceChangeListener {
 
     public static String PARCEL_MOVIE = "parcel_movie";
 
     private final String TAG = MainActivity.class.getSimpleName();
-
-
     private final int LOADER_ID = 1;
     private final int LOADER_FAV_ID = 2;
     @BindView(R.id.recyclerview_movie)
     RecyclerView mRecyclerView;
-    @BindView(pb)
+    @BindView(R.id.pb)
     ProgressBar mLoadingIndicator;
     @BindView(R.id.tv_error_message)
     TextView mErrorMessageTextView;
     MovieAdapter mMovieAdapter;
+    private int mPosition = RecyclerView.NO_POSITION;
     private int loader_id = LOADER_ID;
     private boolean isPopular = true;
     private boolean isFavourite = false;
-    private Movie[] movies;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,36 +57,30 @@ public class MainActivity extends AppCompatActivity
         setContentView(R.layout.activity_main);
 
         ButterKnife.bind(this);
+        
 
         RecyclerView.LayoutManager gridLayoutManager;
         if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE
-                || getResources().getDisplayMetrics().widthPixels >= 800) {
-            if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE
-                    && getResources().getDisplayMetrics().widthPixels > 1200) {
-                gridLayoutManager = new GridLayoutManager(this, 4);
-            } else {
-
-                gridLayoutManager = new GridLayoutManager(this, 3);
-            }
-        } else {
-            gridLayoutManager = new GridLayoutManager(getApplicationContext(), 2);
+                && getResources().getConfiguration().screenWidthDp >= 720) {
+            gridLayoutManager = new GridLayoutManager(this,4);
+        } else if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT
+                && getResources().getConfiguration().screenWidthDp >=720){
+            gridLayoutManager = new GridLayoutManager(this, 3);
+        }else if(getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            gridLayoutManager = new GridLayoutManager(this,3);
+        }else {
+            gridLayoutManager = new GridLayoutManager(this,2);
         }
         mMovieAdapter = new MovieAdapter(this, this);
-
-        if (savedInstanceState != null && savedInstanceState.containsKey(PARCEL_MOVIE)) {
-            movies = (Movie[]) savedInstanceState.getParcelableArray(PARCEL_MOVIE);
-            mMovieAdapter.setMovieData(movies);
-            if (movies != null) {
-                mErrorMessageTextView.setVisibility(View.GONE);
-            }
-        }
 
         mRecyclerView.setLayoutManager(gridLayoutManager);
 
         mRecyclerView.setAdapter(mMovieAdapter);
         mRecyclerView.setHasFixedSize(true);
-
-        LoaderManager.LoaderCallbacks<Movie[]> callback = MainActivity.this;
+        
+        showLoading();
+        
+        LoaderManager.LoaderCallbacks<Cursor> callback = MainActivity.this;
         Bundle bundleForLoader = null;
 
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
@@ -110,6 +98,12 @@ public class MainActivity extends AppCompatActivity
 
         PreferenceManager.getDefaultSharedPreferences(this)
                 .registerOnSharedPreferenceChangeListener(this);
+    }
+
+    private void showLoading() {
+        mRecyclerView.setVisibility(View.INVISIBLE);
+        mLoadingIndicator.setVisibility(View.VISIBLE);
+        mErrorMessageTextView.setVisibility(View.INVISIBLE);
     }
 
     public boolean isOnline() {
@@ -138,6 +132,8 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
+
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu, menu);
@@ -148,10 +144,10 @@ public class MainActivity extends AppCompatActivity
     public boolean onOptionsItemSelected(MenuItem item) {
 
         int id = item.getItemId();
-            if (id == R.id.action_settings) {
-                startActivity(new Intent(MainActivity.this, SettingsActivity.class));
-                return true;
-            }
+        if (id == R.id.action_settings) {
+            startActivity(new Intent(MainActivity.this, SettingsActivity.class));
+            return true;
+        }
 
         return super.onOptionsItemSelected(item);
     }
@@ -161,27 +157,30 @@ public class MainActivity extends AppCompatActivity
     protected void onSaveInstanceState(Bundle outState) {
 
         super.onSaveInstanceState(outState);
-        outState.putParcelableArray(PARCEL_MOVIE, movies);
     }
 
     @Override
-    public void onClick(Movie movie) {
+    public void onClick(int movie_id) {
         Intent intent = new Intent(MainActivity.this, DetailActivity.class);
-        intent.putExtra(PARCEL_MOVIE, movie);
+        Uri uriForDateClicked = Uri.parse(MovieEntry.CONTENT_URI + "/" + movie_id);
+        intent.setData(uriForDateClicked);
         startActivity(intent);
     }
 
     private void showErrorMessage() {
-//        if (isFavourite) {
-//            mErrorMessageTextView.setText(R.string.error_favourite);
-//        }
-//        mErrorMessageTextView.setVisibility(View.VISIBLE);
-//        mRecyclerView.setVisibility(View.INVISIBLE);
+        mLoadingIndicator.setVisibility(View.INVISIBLE);
+        if (isFavourite) {
+            mErrorMessageTextView.setText(R.string.error_favourite);
+            mErrorMessageTextView.setVisibility(View.VISIBLE);
+        }
+
+        mRecyclerView.setVisibility(View.INVISIBLE);
     }
 
     private void showMovieDataView() {
-        mErrorMessageTextView.setVisibility(View.INVISIBLE);
+        mErrorMessageTextView.setVisibility(View.GONE);
         mRecyclerView.setVisibility(View.VISIBLE);
+        mLoadingIndicator.setVisibility(View.GONE);
     }
 
     @Override
@@ -204,170 +203,54 @@ public class MainActivity extends AppCompatActivity
     }
 
     @Override
-    public Loader<Movie[]> onCreateLoader(int id, Bundle args) {
-
-        switch (id) {
-
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+        switch (id){
             case LOADER_ID:
 
-                return new AsyncTaskLoader<Movie[]>(this) {
+                String[] selectionArgs;
+                String selection = MovieEntry.COLUMN_IS_POPULAR + "=?";
+                if (isPopular){
+                    selectionArgs = new String[]{"1"};
+                }else {
+                    selectionArgs = new String[]{"0"};
+                }
 
-                    Movie[] mMovieData = null;
 
-                    @Override
-                    protected void onStartLoading() {
-                        if (mMovieData != null) {
-                            deliverResult(mMovieData);
-                        } else {
-                            mLoadingIndicator.setVisibility(View.VISIBLE);
-                            forceLoad();
-                        }
-                    }
-
-                    @Override
-                    public Movie[] loadInBackground() {
-
-                        String selection = MovieEntry.COLUMN_IS_POPULAR + "=?";
-                        String[] selectionArgs;
-
-                        if (isPopular){
-                            selectionArgs = new String[]{"1"};
-                        }else {
-                            selectionArgs = new String[]{"0"};
-                        }
-
-                        Cursor cursor = getContext().getContentResolver().query(
-                                MovieEntry.CONTENT_URI,
-                                null,
-                                selection,
-                                selectionArgs,
-                                null
-                        );
-
-                        ArrayList<Movie> movies = new ArrayList<>();
-
-                        if (cursor.moveToFirst()) {
-                            do {
-                                String movie_title = cursor.getString(cursor.getColumnIndex(MovieEntry.COLUMN_MOVIE_TITLE));
-                                String movie_overview = cursor.getString(cursor.getColumnIndex(MovieEntry.COLUMN_MOVIE_SYNOPSIS));
-                                String image_url = cursor.getString(cursor.getColumnIndex(MovieEntry.COLUMN_MOVIE_POSTER_PATH));
-                                String release_date = cursor.getString(cursor.getColumnIndex(MovieEntry.COLUMN_RELEASE_DATE));
-                                int movie_id = cursor.getInt(cursor.getColumnIndex(MovieEntry.COLUMN_MOVIE_ID));
-                                double user_rating = cursor.getDouble(cursor.getColumnIndex(MovieEntry.COLUMN_USER_RATING));
-
-                                Movie movie = new Movie();
-
-                                movie.setMovie_overview(movie_overview);
-                                movie.setRelease_date(release_date);
-                                movie.setMovie_id(movie_id);
-                                movie.setImage_url(image_url);
-                                movie.setOriginal_title(movie_title);
-                                movie.setUser_rating(user_rating);
-
-                                movies.add(movie);
-
-                            } while (cursor.moveToNext());
-
-                        } else {
-                            cursor.close();
-                            return null;
-                        }
-                        cursor.close();
-                        return movies.toArray(new Movie[movies.size()]);
-                    }
-
-                    @Override
-                    public void deliverResult(Movie[] data) {
-                        mMovieData = data;
-                        super.deliverResult(data);
-                    }
-                };
+                return new CursorLoader(this,
+                        MovieEntry.CONTENT_URI,
+                        null,
+                        selection,
+                        selectionArgs,
+                        null);
 
             case LOADER_FAV_ID:
-                return new AsyncTaskLoader<Movie[]>(this) {
 
-                    Movie[] mMovieData = null;
-
-                    @Override
-                    protected void onStartLoading() {
-                        if (mMovieData != null) {
-                            deliverResult(mMovieData);
-                        } else {
-                            mLoadingIndicator.setVisibility(View.VISIBLE);
-                            forceLoad();
-                        }
-                    }
-
-                    @Override
-                    public Movie[] loadInBackground() {
-                        Cursor cursor = getContext().getContentResolver().query(
-                                FavouriteEntry.CONTENT_URI,
-                                null,
-                                FavouriteEntry.COLUMN_IS_FAVOURITE + "=?",
-                                new String[]{"1"},
-                                null
-                        );
-
-                        ArrayList<Movie> movies = new ArrayList<>();
-
-                        if (cursor.moveToFirst()) {
-                            do {
-                                String movie_title = cursor.getString(cursor.getColumnIndex(MovieEntry.COLUMN_MOVIE_TITLE));
-                                String movie_overview = cursor.getString(cursor.getColumnIndex(MovieEntry.COLUMN_MOVIE_SYNOPSIS));
-                                String image_url = cursor.getString(cursor.getColumnIndex(MovieEntry.COLUMN_MOVIE_POSTER_PATH));
-                                String release_date = cursor.getString(cursor.getColumnIndex(MovieEntry.COLUMN_RELEASE_DATE));
-                                int movie_id = cursor.getInt(cursor.getColumnIndex(MovieEntry.COLUMN_MOVIE_ID));
-                                double user_rating = cursor.getDouble(cursor.getColumnIndex(MovieEntry.COLUMN_USER_RATING));
-
-                                Movie movie = new Movie();
-
-                                movie.setMovie_overview(movie_overview);
-                                movie.setRelease_date(release_date);
-                                movie.setMovie_id(movie_id);
-                                movie.setImage_url(image_url);
-                                movie.setOriginal_title(movie_title);
-                                movie.setUser_rating(user_rating);
-
-                                movies.add(movie);
-
-                            } while (cursor.moveToNext());
-
-                        } else {
-                            cursor.close();
-                            return null;
-                        }
-                        cursor.close();
-                        return movies.toArray(new Movie[movies.size()]);
-                    }
-
-                    @Override
-                    public void deliverResult(Movie[] data) {
-                        mMovieData = data;
-                        super.deliverResult(data);
-                    }
-                };
+                return new CursorLoader(this,
+                        FavouriteEntry.CONTENT_URI,
+                        null,
+                        FavouriteEntry.COLUMN_IS_FAVOURITE + "=?",
+                        new String[]{"1"},
+                        null
+                );
 
             default:
-                throw new UnsupportedOperationException("wrong id");
-        }
-
-    }
-
-    @Override
-    public void onLoadFinished(Loader<Movie[]> loader, Movie[] data) {
-        mLoadingIndicator.setVisibility(View.INVISIBLE);
-        if (data != null) {
-            showMovieDataView();
-            movies = data;
-            mMovieAdapter.setMovieData(movies);
-        } else {
-            showErrorMessage();
+                throw new RuntimeException("Loader Not Implemented: " + id);
         }
     }
 
     @Override
-    public void onLoaderReset(Loader<Movie[]> loader) {
-        mMovieAdapter.setMovieData(null);
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+        mMovieAdapter.swapCursor(data);
+
+//        if (mPosition == RecyclerView.NO_POSITION) mPosition = 0;
+//        mRecyclerView.smoothScrollToPosition(mPosition);
+        if (data.getCount()!=0)showMovieDataView();
+        else showErrorMessage();
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+        mMovieAdapter.swapCursor(null);
     }
 
     @Override
@@ -378,4 +261,6 @@ public class MainActivity extends AppCompatActivity
         PreferenceManager.getDefaultSharedPreferences(this)
                 .unregisterOnSharedPreferenceChangeListener(this);
     }
+
+
 }

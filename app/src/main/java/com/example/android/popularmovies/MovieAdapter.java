@@ -1,6 +1,7 @@
 package com.example.android.popularmovies;
 
 import android.content.Context;
+import android.database.Cursor;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -9,7 +10,7 @@ import android.widget.ImageView;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
-import com.example.android.popularmovies.data.Movie;
+import com.example.android.popularmovies.data.MovieContract.MovieEntry;
 
 /**
  * Created by Jay on 12/3/2016.
@@ -22,7 +23,7 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieAdapter
     public static final String BASE_IMAGE_URL = "http://image.tmdb.org/t/p/w185";
 
     private final MovieAdapterOnClickHandler mClickHandler;
-    private Movie[] mMovieData;
+    private Cursor mCursor;
     private Context mContext;
 
     public MovieAdapter(Context context, MovieAdapterOnClickHandler clickHandler) {
@@ -40,27 +41,27 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieAdapter
 
     @Override
     public void onBindViewHolder(MovieAdapterViewHolder holder, int position) {
-        Movie movie = mMovieData[position];
+        mCursor.moveToPosition(position);
 
 
         Glide.with(mContext)
-                .load(BASE_IMAGE_URL + movie.getImage_url())
+                .load(BASE_IMAGE_URL + mCursor.getString(mCursor.getColumnIndex(MovieEntry.COLUMN_MOVIE_POSTER_PATH)))
                 .crossFade()
                 .diskCacheStrategy(DiskCacheStrategy.ALL)
                 .into(holder.mPoster);
-        holder.mPoster.setContentDescription(movie.getOriginal_title());
+        holder.mPoster.setContentDescription(mCursor.getString(mCursor.getColumnIndex(MovieEntry.COLUMN_MOVIE_TITLE)));
 
 //        Log.d("MovieAdapte",""+mContext.getResources().getSystem().getDisplayMetrics().widthPixels);
 }
 
     @Override
     public int getItemCount() {
-        if (null == mMovieData) return 0;
-        return mMovieData.length;
+        if (null == mCursor) return 0;
+        return mCursor.getCount();
     }
 
-    public void setMovieData(Movie[] movieData) {
-        mMovieData = movieData;
+    public void swapCursor(Cursor newCurosr) {
+        mCursor = newCurosr;
         notifyDataSetChanged();
     }
 
@@ -70,7 +71,7 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieAdapter
     }
 
     public interface MovieAdapterOnClickHandler {
-        void onClick(Movie movie);
+        void onClick(int movie_id);
     }
 
     public class MovieAdapterViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
@@ -87,8 +88,9 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieAdapter
         @Override
         public void onClick(View view) {
             int adapterPosition = getAdapterPosition();
-            Movie movie = mMovieData[adapterPosition];
-            mClickHandler.onClick(movie);
+            mCursor.moveToPosition(adapterPosition);
+            int movie_id =  mCursor.getInt(mCursor.getColumnIndex(MovieEntry.COLUMN_MOVIE_ID));
+            mClickHandler.onClick(movie_id);
         }
     }
 }

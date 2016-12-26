@@ -9,6 +9,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.AsyncTaskLoader;
+import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -29,6 +30,7 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.example.android.popularmovies.data.Movie;
 import com.example.android.popularmovies.data.MovieContract.FavouriteEntry;
+import com.example.android.popularmovies.data.MovieContract.MovieEntry;
 import com.example.android.popularmovies.data.Review;
 import com.example.android.popularmovies.utilities.NetworkUtils;
 import com.example.android.popularmovies.utilities.TMDBJsonUtils;
@@ -41,23 +43,24 @@ import java.net.URL;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 
-public class DetailActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<String[]>
+public class DetailActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor>
         , TrailerAdapter.TrailerAdapterOnClickHandler, ReviewAdapter.ReviewAdapterOnClickHandler {
 
     private static final String TAG = DetailActivity.class.getSimpleName();
     private static final int LOADER_TRAILER_ID = 1;
     private static final int LOADER_REVIEW_ID = 2;
-
+    private static final int LOADER_CURSOR_ID = 3;
+    private final String SCROLL_RESUME = "scroll_resume";
     @BindView(R.id.release_date)
-    TextView release_date;
+    TextView tv_release_date;
     @BindView(R.id.title)
     TextView title;
     @BindView(R.id.movie_image)
-    ImageView movieImage;
+    ImageView tv_movieImage;
     @BindView(R.id.overview)
-    TextView overview;
+    TextView tv_overview;
     @BindView(R.id.rating)
-    TextView rating;
+    TextView tv_rating;
     @BindView(R.id.star_button)
     LikeButton likeButton;
     @BindView(R.id.rv_trailers)
@@ -76,21 +79,16 @@ public class DetailActivity extends AppCompatActivity implements LoaderManager.L
     ProgressBar pb_trailer;
     @BindView(R.id.pb_review)
     ProgressBar pb_review;
-
+    ShareActionProvider mShareActionProvider;
     private int movie_id;
     private Movie mMovie;
     private boolean is_trailer_finish = false;
-
     private String[] mTrailers;
     private Review[] mReviews;
-
-    private final String SCROLL_RESUME = "scroll_resume";
-
+    private int finalId;
+    private Uri mUri;
     private TrailerAdapter mTrailerAdapter;
     private ReviewAdapter mReviewAdapter;
-
-    ShareActionProvider mShareActionProvider;
-
     private String youtubeUrl = "http://www.youtube.com/watch?v=";
 
 
@@ -114,7 +112,7 @@ public class DetailActivity extends AppCompatActivity implements LoaderManager.L
 
                 @Override
                 public Review[] loadInBackground() {
-                    URL reviewsUrl = NetworkUtils.getReviewJsonUrl(movie_id);
+                    URL reviewsUrl = NetworkUtils.getReviewJsonUrl(finalId);
 
                     try {
                         String jsonMovieResponse = NetworkUtils.getResponseFromHttpUrl(reviewsUrl);
@@ -146,14 +144,76 @@ public class DetailActivity extends AppCompatActivity implements LoaderManager.L
             if (data != null) {
                 mReviews = data;
                 mReviewAdapter.setReviewData(mReviews);
-            }else {
-                Log.d(TAG,"empty");
+            } else {
+                Log.d(TAG, "empty");
                 reviews_linearLayout.setVisibility(View.GONE);
             }
         }
 
         @Override
         public void onLoaderReset(Loader<Review[]> loader) {
+
+        }
+    };
+
+    private LoaderManager.LoaderCallbacks<String[]> trailerLoader = new LoaderManager.LoaderCallbacks<String[]>() {
+        @Override
+        public Loader<String[]> onCreateLoader(int id, Bundle args) {
+            return new AsyncTaskLoader<String[]>(getApplicationContext()) {
+
+                String[] mTrailerData = null;
+
+                @Override
+                protected void onStartLoading() {
+                    if (mTrailerData != null) {
+                        deliverResult(mTrailerData);
+                    } else {
+                        pb_trailer.setVisibility(View.VISIBLE);
+                        forceLoad();
+                    }
+                }
+
+                @Override
+                public String[] loadInBackground() {
+                    URL trailersUrl = NetworkUtils.getTrailerJsonUrl(finalId);
+
+                    try {
+                        String jsonMovieResponse = NetworkUtils.getResponseFromHttpUrl(trailersUrl);
+
+                        String[] trailerData = TMDBJsonUtils.getTrailerDataFromJson(jsonMovieResponse);
+
+                        if (trailerData == null) {
+                            return null;
+                        }
+
+                        return trailerData;
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        return null;
+                    }
+                }
+
+                @Override
+                public void deliverResult(String[] data) {
+                    mTrailerData = data;
+                    super.deliverResult(data);
+                }
+            };
+        }
+
+        @Override
+        public void onLoadFinished(Loader<String[]> loader, String[] data) {
+            pb_trailer.setVisibility(View.GONE);
+            if (data != null) {
+                mTrailers = data;
+                mTrailerAdapter.setTrailerData(mTrailers);
+            }
+            getSupportLoaderManager().initLoader(LOADER_REVIEW_ID, null, reviewLoader);
+            is_trailer_finish = true;
+        }
+
+        @Override
+        public void onLoaderReset(Loader<String[]> loader) {
 
         }
     };
@@ -165,132 +225,31 @@ public class DetailActivity extends AppCompatActivity implements LoaderManager.L
 
         ButterKnife.bind(this);
 
-        Intent intent = getIntent();
-        final Movie movie = intent.getParcelableExtra(MainActivity.PARCEL_MOVIE);
-        if (intent != null) {
+        mTrailerAdapter = new TrailerAdapter(getApplicationContext(),this);
+        mReviewAdapter = new ReviewAdapter(getApplicationContext(),this);
 
+        rv_trailers.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
+        rv_reviews.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
 
-            mMovie = movie;
+        rv_trailers.setAdapter(mTrailerAdapter);
+        rv_reviews.setAdapter(mReviewAdapter);
 
-            title.setText(movie.getOriginal_title());
-            overview.setText(movie.getMovie_overview());
-            rating.setText(String.valueOf(movie.getUser_rating() + "/10"));
-            release_date.setText(movie.getRelease_date());
-            Glide.with(this)
-                    .load(MovieAdapter.BASE_IMAGE_URL + movie.getImage_url())
-                    .diskCacheStrategy(DiskCacheStrategy.ALL)
-                    .into(movieImage);
-            movieImage.setContentDescription(movie.getOriginal_title());
-            movie_id = movie.getMovie_id();
+        rv_trailers.addItemDecoration(new HorizontalDividerItemDecoration.Builder(this)
+                .color(R.color.colorPrimary)
+                .build());
 
+        rv_reviews.addItemDecoration(new HorizontalDividerItemDecoration.Builder(this)
+                .color(R.color.colorPrimary)
+                .build());
 
-            //recyclerView for mTrailers
-            RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getApplicationContext());
-            mTrailerAdapter = new TrailerAdapter(getApplicationContext(), this);
-            rv_trailers.setLayoutManager(layoutManager);
-            rv_trailers.addItemDecoration(new HorizontalDividerItemDecoration.Builder(this)
-                    .color(R.color.colorPrimary)
-                    .build());
-            rv_trailers.setAdapter(mTrailerAdapter);
-            rv_trailers.setHasFixedSize(true);
-            //recyclerView mTrailers end
+        rv_trailers.setHasFixedSize(true);
+        rv_reviews.setHasFixedSize(true);
 
-            //recyclerView for review data
-            RecyclerView.LayoutManager review_layout_manager = new LinearLayoutManager(getApplicationContext());
-            mReviewAdapter = new ReviewAdapter(getApplicationContext(), this);
-            rv_reviews.setLayoutManager(review_layout_manager);
-            rv_reviews.addItemDecoration(new HorizontalDividerItemDecoration.Builder(this)
-                    .color(R.color.colorPrimary)
-                    .build());
-            rv_reviews.setAdapter(mReviewAdapter);
-            rv_reviews.setHasFixedSize(true);
-            //end
+        mUri = getIntent().getData();
+        if (mUri == null) throw new NullPointerException("URI for DetailActivity cannot be null");
 
-            //cursor for favourite movies
-            final Cursor cursor = getContentResolver().query(
-                    Uri.parse(FavouriteEntry.CONTENT_URI + "/" + String.valueOf(movie.getMovie_id())),
-                    null,
-                    null,
-                    null,
-                    null
-            );
+        getSupportLoaderManager().initLoader(LOADER_CURSOR_ID,null,this);
 
-            final long movieId = movie.getMovie_id();
-
-            if (cursor.moveToFirst()) {
-                do {
-                    int isFavoritedColumn = cursor.getColumnIndex(FavouriteEntry.COLUMN_IS_FAVOURITE);
-
-                    if (cursor.getInt(isFavoritedColumn) > 0) {
-                        likeButton.setLiked(true);
-                    } else {
-                        likeButton.setLiked(false);
-                    }
-                } while (cursor.moveToNext());
-            }
-
-
-            cursor.close();
-            //cursor close
-
-            final long finalId = movieId;
-
-            //likeButton listener
-            likeButton.setOnLikeListener(new OnLikeListener() {
-                @Override
-                public void liked(LikeButton likeButton) {
-
-                    Uri uri = FavouriteEntry.CONTENT_URI;
-
-                    ContentValues values = new ContentValues();
-                    values.put(FavouriteEntry.COLUMN_MOVIE_ID, finalId);
-                    values.put(FavouriteEntry.COLUMN_IS_FAVOURITE, 1);
-
-                    Uri rowInserted = getContentResolver().insert(
-                            uri,
-                            values
-                    );
-
-                    if (rowInserted == null) {
-                        throw new UnsupportedOperationException("fail to insert");
-                    }
-
-                    likeButton.setLiked(true);
-                }
-
-                @Override
-                public void unLiked(LikeButton likeButton) {
-                    Uri uri = Uri.parse(FavouriteEntry.CONTENT_URI + "/" + finalId);
-
-                    int rowDeleted = getContentResolver().delete(
-                            uri,
-                            FavouriteEntry.COLUMN_MOVIE_ID + "=?",
-                            new String[]{"" + finalId}
-                    );
-
-                    if (rowDeleted > 0) {
-                        getContentResolver().notifyChange(uri, null);
-                    } else {
-                        throw new UnsupportedOperationException("fail to update");
-                    }
-
-                    likeButton.setLiked(false);
-                }
-            });
-            //end listener
-
-            if (isOnline()) {
-
-                getSupportLoaderManager().initLoader(LOADER_TRAILER_ID, null, DetailActivity.this);
-                getSupportLoaderManager().initLoader(LOADER_REVIEW_ID, null, reviewLoader);
-            } else {
-                trailer_linearLayout.setVisibility(View.GONE);
-                reviews_linearLayout.setVisibility(View.GONE);
-                divider_review.setVisibility(View.GONE);
-            }
-
-
-        }
     }
 
     @Override
@@ -321,7 +280,7 @@ public class DetailActivity extends AppCompatActivity implements LoaderManager.L
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        if (isOnline()){
+        if (isOnline()) {
             getMenuInflater().inflate(R.menu.detail_menu, menu);
 
             MenuItem item = menu.findItem(R.id.menu_item_share);
@@ -336,7 +295,7 @@ public class DetailActivity extends AppCompatActivity implements LoaderManager.L
     private void shareIntent(String trailer) {
         Intent sendIntent = new Intent();
         sendIntent.setAction(Intent.ACTION_SEND);
-        sendIntent.putExtra(Intent.EXTRA_TEXT, youtubeUrl+trailer);
+        sendIntent.putExtra(Intent.EXTRA_TEXT, youtubeUrl + trailer);
         sendIntent.setType("text/plain");
         startActivity(Intent.createChooser(sendIntent, mMovie.getOriginal_title()));
     }
@@ -348,69 +307,10 @@ public class DetailActivity extends AppCompatActivity implements LoaderManager.L
             //NavUtils.navigateUpFromSameTask(this);
             onBackPressed();
             return true;
-        }else if (itemId == R.id.menu_item_share){
+        } else if (itemId == R.id.menu_item_share) {
             shareIntent(mTrailers[0]);
         }
         return super.onOptionsItemSelected(item);
-    }
-
-    @Override
-    public Loader<String[]> onCreateLoader(int id, Bundle args) {
-        return new AsyncTaskLoader<String[]>(this) {
-
-            String[] mTrailerData = null;
-
-            @Override
-            protected void onStartLoading() {
-                if (mTrailerData != null) {
-                    deliverResult(mTrailerData);
-                } else {
-                    pb_trailer.setVisibility(View.VISIBLE);
-                    forceLoad();
-                }
-            }
-
-            @Override
-            public String[] loadInBackground() {
-                URL trailersUrl = NetworkUtils.getTrailerJsonUrl(movie_id);
-
-                try {
-                    String jsonMovieResponse = NetworkUtils.getResponseFromHttpUrl(trailersUrl);
-
-                    String[] trailerData = TMDBJsonUtils.getTrailerDataFromJson(jsonMovieResponse);
-
-                    if (trailerData == null) {
-                        return null;
-                    }
-
-                    return trailerData;
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    return null;
-                }
-            }
-
-            @Override
-            public void deliverResult(String[] data) {
-                mTrailerData = data;
-                super.deliverResult(data);
-            }
-        };
-    }
-
-    @Override
-    public void onLoadFinished(Loader<String[]> loader, String[] data) {
-        pb_trailer.setVisibility(View.GONE);
-        if (data != null) {
-            mTrailers = data;
-            mTrailerAdapter.setTrailerData(mTrailers);
-        }
-        is_trailer_finish = true;
-    }
-
-    @Override
-    public void onLoaderReset(Loader<String[]> loader) {
-
     }
 
 
@@ -424,4 +324,135 @@ public class DetailActivity extends AppCompatActivity implements LoaderManager.L
 
     }
 
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+        return new CursorLoader(this,
+                mUri,
+                null,
+                null,
+                null,
+                null);
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+        boolean cursorHasValidData = false;
+        if (data != null && data.moveToFirst()) {
+            /* We have valid data, continue on to bind the data to the UI */
+            cursorHasValidData = true;
+        }
+
+        if (!cursorHasValidData) {
+            /* No data to display, simply return and do nothing */
+            return;
+        }
+
+        String original_title = data.getString(data.getColumnIndex(MovieEntry.COLUMN_MOVIE_TITLE));
+        String release_date = data.getString(data.getColumnIndex(MovieEntry.COLUMN_RELEASE_DATE));
+        String image_url = data.getString(data.getColumnIndex(MovieEntry.COLUMN_MOVIE_POSTER_PATH));
+        String user_rating = data.getString(data.getColumnIndex(MovieEntry.COLUMN_USER_RATING));
+        finalId = data.getInt(data.getColumnIndex(MovieEntry.COLUMN_MOVIE_ID));
+        String overview = data.getString(data.getColumnIndex(MovieEntry.COLUMN_MOVIE_SYNOPSIS));
+
+        title.setText(original_title);
+        Glide.with(this)
+                .load(MovieAdapter.BASE_IMAGE_URL + image_url)
+                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                .crossFade()
+                .into(tv_movieImage);
+
+        tv_overview.setText(overview);
+        tv_rating.setText(user_rating+"/10");
+        tv_release_date.setText(release_date);
+
+        Uri uri = Uri.parse(String.valueOf(FavouriteEntry.CONTENT_URI)).buildUpon()
+                .appendPath(String.valueOf(finalId)).build();
+
+        Cursor cursor = getContentResolver().query(
+                uri,
+                null,
+                null,
+                null,
+                null
+        );
+        int is_favourite = 0;
+
+        try{
+            if (cursor.moveToFirst()){
+                do {
+                    is_favourite = cursor.getInt(cursor.getColumnIndex(FavouriteEntry.COLUMN_IS_FAVOURITE));
+                }while (cursor.moveToNext());
+            }
+
+        }catch (Exception e){
+            e.printStackTrace();
+        }finally {
+            cursor.close();
+        }
+
+
+        if (is_favourite>0){
+            likeButton.setLiked(true);
+        }
+
+
+        //likeButton listener
+        likeButton.setOnLikeListener(new OnLikeListener() {
+            @Override
+            public void liked(LikeButton likeButton) {
+
+                Uri uri = FavouriteEntry.CONTENT_URI;
+
+                ContentValues values = new ContentValues();
+                values.put(FavouriteEntry.COLUMN_MOVIE_ID, finalId);
+                values.put(FavouriteEntry.COLUMN_IS_FAVOURITE, 1);
+
+                Uri rowInserted = getContentResolver().insert(
+                        uri,
+                        values
+                );
+
+                if (rowInserted == null) {
+                    throw new UnsupportedOperationException("fail to insert");
+                }
+
+                likeButton.setLiked(true);
+            }
+
+            @Override
+            public void unLiked(LikeButton likeButton) {
+                Uri uri = Uri.parse(FavouriteEntry.CONTENT_URI + "/" + finalId);
+
+                int rowDeleted = getContentResolver().delete(
+                        uri,
+                        FavouriteEntry.COLUMN_MOVIE_ID + "=?",
+                        new String[]{"" + finalId}
+                );
+
+                if (rowDeleted > 0) {
+                    getContentResolver().notifyChange(uri, null);
+                } else {
+                    throw new UnsupportedOperationException("fail to update");
+                }
+
+                likeButton.setLiked(false);
+            }
+        });
+
+        if (isOnline()) {
+
+            getSupportLoaderManager().initLoader(LOADER_TRAILER_ID, null, trailerLoader);
+            getSupportLoaderManager().initLoader(LOADER_REVIEW_ID, null, reviewLoader);
+        } else {
+            trailer_linearLayout.setVisibility(View.GONE);
+            reviews_linearLayout.setVisibility(View.GONE);
+            divider_review.setVisibility(View.GONE);
+        }
+        //end listener
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+
+    }
 }
