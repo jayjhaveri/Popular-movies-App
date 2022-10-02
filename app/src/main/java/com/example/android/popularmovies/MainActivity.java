@@ -60,16 +60,23 @@ public class MainActivity extends AppCompatActivity
         
 
         RecyclerView.LayoutManager gridLayoutManager;
-        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE
-                && getResources().getConfiguration().screenWidthDp >= 720) {
-            gridLayoutManager = new GridLayoutManager(this,4);
-        } else if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT
-                && getResources().getConfiguration().screenWidthDp >=720){
-            gridLayoutManager = new GridLayoutManager(this, 3);
-        }else if(getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            gridLayoutManager = new GridLayoutManager(this,3);
-        }else {
-            gridLayoutManager = new GridLayoutManager(this,2);
+        switch (getResources().getConfiguration().orientation) {
+            case Configuration.ORIENTATION_LANDSCAPE:
+                if(getResources().getConfiguration().screenWidthDp >= 720){
+                    gridLayoutManager = new GridLayoutManager(this,4);
+                }
+                break;
+            case Configuration.ORIENTATION_PORTRAIT:
+                if(getResources().getConfiguration().screenWidthDp >=720){
+                    gridLayoutManager = new GridLayoutManager(this, 3);
+                }
+                break;
+            case Configuration.ORIENTATION_LANDSCAPE:
+                gridLayoutManager = new GridLayoutManager(this,3);
+                break;
+            default:
+                gridLayoutManager = new GridLayoutManager(this,2);
+                break;
         }
         mMovieAdapter = new MovieAdapter(this, this);
 
